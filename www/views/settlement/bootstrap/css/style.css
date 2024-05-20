@@ -1,0 +1,21 @@
+/**
+	search skin css
+*/
+
+.search_box{background-color: #d9edf7;border: 1px solid #ddd;padding: 15px 0 0 !important;margin: 0 15px;border-radius: 3px;overflow:hidden;}
+.search form{padding:20px;}
+.search textarea {padding: 15px;background: #f7f7f7;font-size: 12px;}
+
+.form-horizontal .form-group{margin: 0px;}
+.table>thead>tr>th, .table>tbody>tr>th, .table>tfoot>tr>th, .table>thead>tr>td, .table>tbody>tr>td, .table>tfoot>tr>td{padding: 5px;}
+
+input[type=file].form-control{height: 40px;}
+form[name=fsearch] {padding: 20px 0;}
+
+@media (max-width: 768px) {
+	form[name=fsearch] .datepicker{width: 45%;}
+}
+
+.table caption{font-weight: bold;font-size: 1.3em;color: #000;padding-top:16px;}
+
+.table td.clickable{cursor:pointer;}

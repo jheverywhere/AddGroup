@@ -1,0 +1,248 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+require APPPATH . '/libraries/REST_Controller.php';
+/*
+ * Changes:
+ * 1. This project contains .htaccess file for windows machine.
+ *    Please update as per your requirements.
+ *    Samples (Win/Linux): http://stackoverflow.com/questions/28525870/removing-index-php-from-url-in-codeigniter-on-mandriva
+ *
+ * 2. Change 'encryption_key' in application\config\config.php
+ *    Link for encryption_key: http://jeffreybarke.net/tools/codeigniter-encryption-key-generator/
+ * 
+ * 3. Change 'jwt_key' in application\config\jwt.php
+ *
+ */
+class Auth extends REST_Controller
+{
+	function __construct()
+	{
+		parent::__construct();
+
+		/**
+		 * 라이브러리를 로딩합니다
+		 */
+		$this->load->library(array('form_validation'));
+    }
+    
+    public function login_get()
+    {
+        $dummy_user = [
+            'username' => 'Test',
+            'password' => 'test'
+        ];
+        // Extract user data from POST request
+        $username = $this->post('username');
+        $password = $this->post('password');
+        // Check if valid user
+        if ($username === $dummy_user['username'] && $password === $dummy_user['password']) {
+            
+            // Create a token from the user data and send it as reponse
+            $token = AUTHORIZATION::generateToken(['username' => $dummy_user['username']]);
+            // Prepare the response
+            $status = parent::HTTP_OK;
+            $response = ['status' => $status, 'token' => $token];
+            $this->response($response, $status);
+        }
+        else {
+            $this->response(['msg' => 'Invalid username or password!'], parent::HTTP_NOT_FOUND);
+        }
+    }
+    public function test_post()
+	{
+       
+        $theCredential = $this->user_data;
+        $this->response($theCredential, 200); // OK (200) being the HTTP response code
+        
+	}
+    public function login_post()
+    {
+        
+        $u = $this->post('username'); //Username Posted
+        $p = sha1($this->post('password')); //Pasword Posted
+        $q = array('username' => $u); //For where query condition
+        $output = array($u, $p, $q);
+        $this->set_response($output, REST_Controller::HTTP_OK); //This is the respon if success
+    }
+
+    /**
+     * URL: http://localhost/CodeIgniter-JWT-Sample/auth/token
+     * Method: GET
+     */
+    public function token_get()
+    {
+        $user_id = $this->input->server('PHP_AUTH_USER');
+        $user_pw = $this->input->server('PHP_AUTH_PW');
+        $device_duid = $this->input->server('HTTP_X_DUID');
+
+        // print_r(array($user_id, $user_pw, $device_duid));
+
+        $auth_result = $this->_check_id_pw($user_pw, $user_id);
+        if ($auth_result) {
+            $tokenData = array();
+            $tokenData['id'] = 1; //TODO: Replace with data for token
+            $output['token'] = AUTHORIZATION::generateToken($tokenData);
+
+            $this->load->model('Member_userid_model');
+            $useriddata = array(
+                'mem_token' => $output['token'],
+                'mem_device_duid' => $device_duid,
+            );
+            $useridwhere = array('mem_userid' => element('mem_userid', $user_id));
+            $this->Member_userid_model->update('', $useriddata, $useridwhere);
+
+            $this->set_response($output, REST_Controller::HTTP_OK);
+        } else {
+            $output['error'] = '아이디 또는 비밀번호가 일치하지 않습니다.';
+            $this->set_response($output, REST_Controller::HTTP_UNAUTHORIZED);
+        }
+    }
+    /**
+     * URL: http://localhost/CodeIgniter-JWT-Sample/auth/token
+     * Method: POST
+     * Header Key: Authorization
+     * Value: Auth token generated in GET call
+     */
+    public function token_post()
+    {
+        echo 'test';
+        return ;
+        $headers = $this->input->request_headers();
+        if (array_key_exists('Authorization', $headers) && !empty($headers['Authorization'])) {
+            $decodedToken = AUTHORIZATION::validateToken($headers['Authorization']);
+            if ($decodedToken != false) {
+                $this->set_response($decodedToken, REST_Controller::HTTP_OK);
+                return;
+            }
+        }
+        $this->set_response("Unauthorised", REST_Controller::HTTP_UNAUTHORIZED);
+    }
+
+
+    /**
+     * 로그인시 아이디와 패스워드가 일치하는지 체크합니다
+     */
+    private function _check_id_pw($password, $userid)
+    {
+         if ( ! function_exists('password_hash')) {
+            $this->load->helper('password');
+        }
+
+        $max_login_try_count = (int) $this->cbconfig->item('max_login_try_count');
+        $max_login_try_limit_second = (int) $this->cbconfig->item('max_login_try_limit_second');
+
+        $loginfailnum = 0;
+        $loginfailmessage = '';
+        if ($max_login_try_count && $max_login_try_limit_second) {
+            $select = 'mll_id, mll_success, mem_id, mll_ip, mll_datetime';
+            $where = array(
+                'mll_ip' => $this->input->ip_address(),
+                'mll_datetime > ' => strtotime(ctimestamp() - 86400 * 30),
+            );
+            $this->load->model('Member_login_log_model');
+            $logindata = $this->Member_login_log_model
+                ->get('', $select, $where, '', '', 'mll_id', 'DESC');
+
+            if ($logindata && is_array($logindata)) {
+                foreach ($logindata as $key => $val) {
+                    if ((int) $val['mll_success'] === 0) {
+                        $loginfailnum++;
+                    } elseif ((int) $val['mll_success'] === 1) {
+                        break;
+                    }
+                }
+            }
+            if ($loginfailnum > 0 && $loginfailnum % $max_login_try_count === 0) {
+                $lastlogintrydatetime = $logindata[0]['mll_datetime'];
+                $next_login = strtotime($lastlogintrydatetime)
+                    + $max_login_try_limit_second
+                    - ctimestamp();
+                if ($next_login > 0) {
+                    $this->form_validation->set_message(
+                        '_check_id_pw',
+                        '회원님은 패스워드를 연속으로 ' . $loginfailnum . '회 잘못 입력하셨기 때문에 '
+                        . $next_login . '초 후에 다시 로그인 시도가 가능합니다'
+                    );
+                    return false;
+                }
+            }
+            $loginfailmessage = '<br />회원님은 ' . ($loginfailnum + 1)
+                . '회 연속으로 패스워드를 잘못입력하셨습니다. ';
+        }
+
+        $use_login_account = $this->cbconfig->item('use_login_account');
+
+        $this->load->model(array('Member_dormant_model'));
+
+        $userselect = 'mem_id, mem_password, mem_denied, mem_email_cert, mem_is_admin';
+        $is_dormant_member = false;
+        if ($use_login_account === 'both') {
+            $userinfo = $this->Member_model->get_by_both($userid, $userselect);
+            if ( ! $userinfo) {
+                $userinfo = $this->Member_dormant_model->get_by_both($userid, $userselect);
+                if ($userinfo) {
+                    $is_dormant_member = true;
+                }
+            }
+        } elseif ($use_login_account === 'email') {
+            $userinfo = $this->Member_model->get_by_email($userid, $userselect);
+            if ( ! $userinfo) {
+                $userinfo = $this->Member_dormant_model->get_by_email($userid, $userselect);
+                if ($userinfo) {
+                    $is_dormant_member = true;
+                }
+            }
+        } else {
+            $userinfo = $this->Member_model->get_by_userid($userid, $userselect);
+            if ( ! $userinfo) {
+                $userinfo = $this->Member_dormant_model->get_by_userid($userid, $userselect);
+                if ($userinfo) {
+                    $is_dormant_member = true;
+                }
+            }
+        }
+        $hash = password_hash($password, PASSWORD_BCRYPT);
+
+        if ( ! element('mem_id', $userinfo) OR ! element('mem_password', $userinfo)) {
+            $this->form_validation->set_message(
+                '_check_id_pw',
+                '회원 아이디와 패스워드가 서로 맞지 않습니다' . $loginfailmessage
+            );
+            $this->member->update_login_log(0, $userid, 0, '회원 아이디가 존재하지 않습니다');
+            return false;
+        } elseif ( ! password_verify($password, element('mem_password', $userinfo))) {
+            $this->form_validation->set_message(
+                '_check_id_pw',
+                '회원 아이디와 패스워드가 서로 맞지 않습니다' . $loginfailmessage
+            );
+            $this->member->update_login_log(element('mem_id', $userinfo), $userid, 0, '패스워드가 올바르지 않습니다');
+            return false;
+        } elseif (element('mem_denied', $userinfo)) {
+            $this->form_validation->set_message(
+                '_check_id_pw',
+                '회원님의 아이디는 접근이 금지된 아이디입니다'
+            );
+            $this->member->update_login_log(element('mem_id', $userinfo), $userid, 0, '접근이 금지된 아이디입니다');
+            return false;
+        } elseif ($this->cbconfig->item('use_register_email_auth') && ! element('mem_email_cert', $userinfo)) {
+            $this->form_validation->set_message(
+                '_check_id_pw',
+                '회원님은 아직 이메일 인증을 받지 않으셨습니다'
+            );
+            $this->member->update_login_log(element('mem_id', $userinfo), $userid, 0, '이메일 인증을 받지 않은 회원아이디입니다');
+            return false;
+        } elseif (element('mem_is_admin', $userinfo) && $this->input->post('autologin')) {
+            $this->form_validation->set_message(
+                '_check_id_pw',
+                '최고관리자는 자동로그인 기능을 사용할 수 없습니다'
+            );
+            return false;
+        }
+
+        if ($is_dormant_member === true) {
+            $this->member->recover_from_dormant(element('mem_id', $userinfo));
+        }
+
+        return true;
+    }
+}
