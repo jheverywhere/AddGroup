@@ -166,7 +166,7 @@ class Mp_Contract_model extends CB_Model
 
 	public function get_contract_by_cust_name_or_phone($stx)
 	{
-		$this->db->select("ctr_no, cust_name, cust_phone, accept_date");
+		$this->db->select("ctr_no, cust_name, cust_phone, cust_group, accept_date");
 		$this->db->from($this->_table);
 		
 		if ($this->member->item('mem_level') <= 20) { // 영업담당 이하
@@ -177,6 +177,22 @@ class Mp_Contract_model extends CB_Model
 		$this->db->or_like("cust_name", $stx);
 		$this->db->or_like("cust_phone", $stx);
 		$this->db->group_end();
+		$query_result = $this->db->get();
+		// debug_last_query();
+		return $query_result->result_array();
+	}
+
+	public function get_contract_by_group($group)
+	{
+		$this->db->select("ctr_no, cust_name, cust_phone, accept_date, cust_group");
+		$this->db->from($this->_table);
+		$this->db->where("cust_group",$group);
+
+		if ($this->member->item('mem_level') <= 20) { // 영업담당 이하
+			$this->db->where("cb_mp_contract.ctr_mem_id", $this->member->is_member());
+		}
+		$this->db->group_by('cust_group');
+
 		$query_result = $this->db->get();
 		// debug_last_query();
 		return $query_result->result_array();
@@ -476,6 +492,17 @@ class Mp_Contract_model extends CB_Model
 		$paging_result['list'] = $query_result->result_array();
 		// debug_last_query();
 		return $paging_result;
+	}
+	public function get_cust_group($group)
+	{
+		$this->db->select("cust_phone, cust_name, cust_group")
+				 ->from($this->_table)
+				 ->where('cust_group',$group);
+				 $result = $this->db->get();
+		// debug_last_query();
+		return $result->result_array();
+
+
 	}
 
 

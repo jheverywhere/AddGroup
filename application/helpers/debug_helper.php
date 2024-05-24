@@ -59,9 +59,9 @@ function firephp_session($type = 'log')
  */
 function debug_var($var)
 {
-    if (strpos($_SERVER['HTTP_USER_AGENT'], 'qqbro') <= 0) {
-        return false;
-    }
+    // if (strpos($_SERVER['HTTP_USER_AGENT'], 'qqbro') <= 0) {
+    //     return false;
+    // }
 
     if (!is_cli()) {
         echo _before();
@@ -96,9 +96,9 @@ function dq()
 
 function debug_stacktrace()
 {
-    if (strpos($_SERVER['HTTP_USER_AGENT'], 'qqbro') <= 0) {
-        return false;
-    }
+    // if (strpos($_SERVER['HTTP_USER_AGENT'], 'qqbro') <= 0) {
+    //     return false;
+    // }
 
     if (!is_cli()) {
         echo _before();
@@ -120,9 +120,9 @@ function debug_stacktrace()
  */
 function debug_last_query()
 {
-    if (strpos($_SERVER['HTTP_USER_AGENT'], 'qqbro') <= 0) {
-        return false;
-    }
+    // if (strpos($_SERVER['HTTP_USER_AGENT'], 'qqbro') <= 0) {
+    //     return false;
+    // }
 
     $CI =& get_instance();
     echo _before();
@@ -140,9 +140,9 @@ function debug_last_query()
  */
 function debug_query_result($query = null)
 {
-    if (strpos($_SERVER['HTTP_USER_AGENT'], 'qqbro') <= 0) {
-        return false;
-    }
+    // if (strpos($_SERVER['HTTP_USER_AGENT'], 'qqbro') <= 0) {
+    //     return false;
+    // }
 
     echo _before();
     print_r($query->result_array());
@@ -158,9 +158,9 @@ function debug_query_result($query = null)
  */
 function debug_session()
 {
-    if (strpos($_SERVER['HTTP_USER_AGENT'], 'qqbro') <= 0) {
-        return false;
-    }
+    // if (strpos($_SERVER['HTTP_USER_AGENT'], 'qqbro') <= 0) {
+    //     return false;
+    // }
 
     $CI =& get_instance();
     echo _before();

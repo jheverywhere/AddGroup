@@ -47,12 +47,20 @@ $submit_button = '
 				<tbody>
 					<tr>
 						<td>
-							<div class="col-md-6 col-xs-6 form-group">
+							<div class="col-md-3 col-xs-3 form-group">
 								<label for="cust_name">고객이름</label>
 								<!-- <input type="text" class="form-control" id="cust_name" name="cust_name" value="<?=element('cust_name', $data)?>" required placeholder="성명"> -->
 								<select class="form-control" name="cust_name" id="cust_name" data-idx="1" required>
 									<?php if (element('cust_name', $data)) { ?>
 									<option value="<?=element('cust_name', $data)?>" selected><?=element('cust_name', $data)?></option>
+									<?php } ?>
+								</select>
+							</div>
+							<div class="col-md-3 col-xs-3 form-group">
+								<label for="cust_group">그룹</label>
+								<select class="form-control" name="cust_group" id="cust_group" required>
+									<?php if (element('cust_group', $data)) { ?>
+									<option value="<?=element('cust_group', $data)?>" selected><?=element('cust_group', $data)?></option>
 									<?php } ?>
 								</select>
 							</div>
@@ -631,6 +639,40 @@ $(document).ready(function() {
 			}
 		}
 	});
+
+	$("#cust_group").select2({
+		tags: true,
+		ajax: {
+			url: '<?=site_url()."/contract/cust_exists"?>',
+			dataType: 'json',
+			data: function (params) {
+				var query = {
+					term: params.term,
+					type: 'public'
+				}
+				return query;
+			},
+			processResults: function (data) {
+				if (data == null) {
+					return [];
+				} else {
+					console.log(data);
+					return {
+						results: data.results
+					};
+				}
+			}
+		}
+	}).on('change', function (e) {
+		var cust_string = $(this).find("option:selected").text();
+		if (cust_string) {
+			var extract_phone_string = cust_string.match(/01[01789]-\d{3,4}-\d{4}/);
+			if (extract_phone_string) {
+				$("#cust_phone").val(extract_phone_string[0]);
+			}
+		}
+	});
+
 
 	$("#ctr_prod_cd").change(function () {
 		var prod_price = $(this).find("option:selected").data('prod_price');

@@ -96,7 +96,7 @@ class Smssend extends CB_Controller
 		$view['view']['per_page'] = $per_page;
 
 		$config = array();
-		$config['base_url'] = '/sms';
+		// $config['base_url'] = '/sms';
 		$config['total_rows'] = element('total_rows', $sms_list);
 		$config['per_page'] = $per_page;
 		$config['reuse_query_string'] = TRUE;
@@ -123,6 +123,9 @@ class Smssend extends CB_Controller
 		$view = array();
 		$view['view'] = array();
 
+		// 모델을 로딩합니다.
+		$this->load->model('Mp_Contract_model');
+		
 		// 이벤트가 존재하면 실행합니다
 		$view['view']['event']['before'] = Events::trigger('before', $eventname);
 
@@ -205,7 +208,23 @@ class Smssend extends CB_Controller
 			$phones = array();
 
 			// $send_list = explode('/', $this->input->post('send_list'));
+		
 			$send_list = $this->input->post('phone_list', null, array());
+			
+			//그룹 카테고리 따로 나누기
+			foreach($send_list as $key => $find_group){
+				if(strpos($find_group,"g,그룹 전송")!== false){	
+					$group_list[] = $find_group;
+					unset($send_list[$key]);
+				}
+			}
+			// debug_var($group_list);			
+			foreach($group_list as $group_item){
+				$topic = explode(':',$group_item)[1];
+				$list = $this->Mp_Contract_model->get_cust_group($topic);
+			}
+			
+			$send_list = array_values($send_list); // 배열 재 정렬
 			$chk_overlap = 1; // 중복번호를 체크함
 			$overlap = 0;
 			$duplicate_data = array();
@@ -222,18 +241,17 @@ class Smssend extends CB_Controller
 					$item[$i] = explode(':', $item[$i]);
 					$phone = get_phone($item[$i][1], 0);
 					$name = $item[$i][0];
-
+					$group = $item[$i][2];
 					if ($chk_overlap && array_overlap($phones, $phone)) {
 						$overlap++;
 						array_push($duplicate_data['phone'], $phone);
 						continue;
 					}
-					array_push($list, array('phone' => $phone, 'name' => $name));
+					array_push($list, array('cust_phone' => $phone, 'cust_name' => $name, 'cust_group'=> $group));
 					array_push($phones, $phone);
-
 				}
 			}
-
+			// debug_var($list);
 			if ( count($duplicate_data['phone'])) { //중복된 번호가 있다면
 				$duplicate_data['total'] = $overlap;
 				$str_serialize = serialize($duplicate_data);
@@ -323,12 +341,14 @@ class Smssend extends CB_Controller
 			foreach ($list as $receiver) {
 				$insertdata = array(
 					"sml_no" => $sml_no,
-					"smr_cust_name" => element('name', $receiver),
-					"smr_cust_phone" => element('phone', $receiver),
+					"smr_cust_group" => element('cust_group', $receiver),
+					"smr_cust_name" => element('cust_name', $receiver),
+					"smr_cust_phone" => element('cust_phone', $receiver),
 				);
 				$smr_no = $this->Mp_smssend_recv_model->insert($insertdata);
 
-				$results = $this->kakaobizm->send_mms($sender, element('phone', $receiver), $sfa_content, $mms_img_url);
+				$results = $this->kakaobizm->send_mms($sender, element('cust_phone', $receiver), $sfa_content, $mms_img_url);
+				// debug_var($results);
 				if (is_array($results)) {
 					foreach ($results as $phn => $result) {
 						$updatedata = array(
@@ -353,13 +373,11 @@ class Smssend extends CB_Controller
 
 			redirect("/smssend");
 		}
-
 		$list = array();
 		// $ctr_no_list = $this->input->post('ctr_no_list', null, array());
 		$ctr_no_list = $this->input->post('chk', null, array());
 		$phn = $this->input->post('phn', null, '');
 		if ($ctr_no_list) {
-			$this->load->model('Mp_Contract_model');
 			$list = $this->Mp_Contract_model->get_cust_list('', '', $ctr_no_list);
 		} else if ($phn) {
 			$nm = $this->input->post('nm', null, '');
@@ -393,10 +411,9 @@ class Smssend extends CB_Controller
 		$this->load->model("Mp_Contract_model");
 
 		$term = $this->input->get('term');
-
 		if (0 < strlen($term)) {
 			$cust_list = $this->Mp_Contract_model->get_contract_by_cust_name_or_phone($term);
-
+			
 			$result = array(
 				"results" => array(),
 				"pagination" => array(
@@ -407,7 +424,7 @@ class Smssend extends CB_Controller
 				foreach ($cust_list as $i => $row) {
 					$result['results'][] = array(
 						// "id" => element('cust_name', $row),
-						"id" => 'h,'.element('cust_name', $row).":".get_phone(element('cust_phone', $row)),
+						"id" => 'h,'.element('cust_name', $row).":".get_phone(element('cust_phone', $row)).":".element('cust_group', $row),
 						"text" => element('cust_name', $row)." (".get_phone(element('cust_phone', $row)).")"
 					);
 				}
@@ -418,6 +435,39 @@ class Smssend extends CB_Controller
 
 		$this->output->set_content_type('application/json');
 		$this->output->set_output(json_encode($result));
+	}
+
+	public function ajax_group_exists()
+	{
+		$this->load->model("Mp_Contract_model");
+
+		$term = $this->input->get('term');
+
+		if (0 < strlen($term)) {
+			$cust_list = $this->Mp_Contract_model->get_contract_by_group($term);
+
+			$result = array(
+				"results" => array(),
+				"pagination" => array(
+					"more" => true
+				),
+			);
+			if ($cust_list) {
+				foreach ($cust_list as $i => $row) {
+					$result['results'][] = array(
+						"id" => "g,그룹 전송 :".element('cust_group', $row),
+						"text" =>element('cust_group', $row)
+					);
+				}
+
+			}
+		} else {
+			$result = NULL;
+		}
+		// dd($result);
+		$this->output->set_content_type('application/json');
+		$this->output->set_output(json_encode($result));
+
 	}
 
 

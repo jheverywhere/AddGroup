@@ -128,20 +128,8 @@ $this->managelayout->add_js(base_url('assets/js/select2.min.js'));
 						<div class="form-group">
 							<label for="ssc_send_phone">받는사람</label>
 							<div>
-								<ul id="phone_list_group" class="list-group" style="padding: 0px;">
-									<?php
-									if (element('list', element('data', $view))) {
-										foreach (element('list', element('data', $view)) as $i => $row) {
-									?>
-										<li class="list-group-item">
-											<button type="button" class="close" aria-label="Delete" onclick="this.parentNode.parentNode.removeChild(this.parentNode);"><span aria-hidden="true">&times;</span></button>
-											<span><?=element('cust_name', $row).' ('.get_phone(element('cust_phone', $row)).')'?></span>
-											<input type="hidden" name="phone_list[]" value="<?='h,'.element('cust_name', $row).':'.get_phone(element('cust_phone', $row))?>">
-										</li>
-									<?php
-										}
-									}
-									?>
+							<ul id="phone_list_group" class="list-group" style="padding: 0px;">
+
 								</ul>
 							</div>
 							<!-- <button type="button" class="btn btn-default btn-xs" onclick="phone_list_del()">선택삭제</button>
@@ -162,7 +150,7 @@ $this->managelayout->add_js(base_url('assets/js/select2.min.js'));
 				<div class="row">
 					<div class="col-md-6">
 						<label for="direct">직접추가</label>
-						<div class="input-group" id="direct">
+						<div class="input-group" id="direct" style="padding:20px 0;">
 							<input type="text" name="receiver_name" id="receiver_name" class="form-control" maxlength="20" placeholder="이름" onkeypress="if (event.keyCode == 13) document.getElementById('receiver_phone').focus();" /><br />
 							<input type="tel" name="receiver_phone" id="receiver_phone" class="form-control" maxlength="20" placeholder="전화번호(*)" onkeypress="if (event.keyCode == 13) phone_add()" />
 							<span class="input-group-addon">
@@ -174,6 +162,12 @@ $this->managelayout->add_js(base_url('assets/js/select2.min.js'));
 						<div class="form-group">
 							<label for="find_cust">검색하여 추가</label>
 							<select class="form-control" id="find_cust" style="width: 100%;"></select>
+						</div>
+					</div>
+					<div class="col-md-6">
+						<div class="form-group">
+							<label for="find_group">그룹 검색</label>
+							<select class="form-control" id="find_group" style="width: 100%;"></select>
 						</div>
 					</div>
 				</div>
@@ -193,48 +187,43 @@ $this->managelayout->add_js(base_url('assets/js/select2.min.js'));
 	$(function() {
 
 		// $.fn.modal.Constructor.prototype.enforceFocus = function() {};
-		$("#find_cust").select2({
-			// tags: true,
-			placeholder: "고객이름 또는 고객전화번호를 입력하여 검색하세요.",
-    		// allowClear: true,
-			dropdownPosition: 'above',
-			closeOnSelect: false,
-			// dropdownParent: $('#myModal'),
-			// dropdownParent: jQuery('.select2-container'),
-			ajax: {
-				url: '<?=site_url("smssend/ajax_cust_exists")?>',
-				dataType: 'json',
-				data: function (params) {
-					var query = {
-						term: params.term,
-						type: 'public'
-					}
-					return query;
-				},
-				processResults: function (data) {
-					if (data == null) {
-						return [];
-					} else {
-						// console.log(data);
-						return {
-							results: data.results
-						};
+		function chooseSelect2(selector, placeholder, ajaxUrl,allowClear){
+			$(selector).select2({
+				// tags: true,
+				placeholder: placeholder,
+				allowClear: allowClear,
+				dropdownPosition: 'above',
+				closeOnSelect: false,
+				// dropdownParent: $('#myModal'),
+				// dropdownParent: jQuery('.select2-container'),
+				ajax: {
+					url: ajaxUrl,
+					dataType: 'json',
+					data: function (params) {
+						var query = {
+							term: params.term,
+							type: 'public'
+						}
+						return query;
+					},
+					processResults: function (data) {
+						if (data == null) {
+							return [];
+						} else {
+							// console.log(data);
+							return {
+								results: data.results
+							};
+						}
 					}
 				}
-			}
-		}).on('change', function (e) {
-			// var cust_string = $(this).find("option:selected").text();
-			// var $exists = $("#phone_list > option:contains('"+cust_string+"')");
-			// if ($exists.length > 0) {
-			// 	alert("이미 받는사람에 추가된 고객입니다.");
-			// 	return false;
-			// }
-			// var new_option = $('<option value="'+$(this).val()+'">'+cust_string+'</option>');
-			// $('#phone_list').append(new_option);
-
-			var cust_string = $(this).find("option:selected").text();
-			add_phone(cust_string, $(this).val());
-		});
+			}).on('change', function (e) {
+				var cust_string = $(this).find("option:selected").text();
+				add_phone(cust_string, $(this).val());
+			});
+		}
+		chooseSelect2("#find_cust","고객이름 또는 고객전화번호를 입력하여 검색하세요.",'<?=site_url("smssend/ajax_cust_exists")?>',false);
+		chooseSelect2("#find_group","단체 전송할 그룹을 선택해주세요",'<?=site_url("smssend/ajax_group_exists")?>',true);
 
 
 		$(document).on('focus keydown', '#sfa_content', function() {
@@ -248,6 +237,8 @@ $this->managelayout->add_js(base_url('assets/js/select2.min.js'));
 			$('.write_scemo').hide();
 		});
 	});
+
+
 
 	var emoticon_list = {
 		go: function(sfa_id) {
@@ -340,7 +331,7 @@ $this->managelayout->add_js(base_url('assets/js/select2.min.js'));
 	function add_phone(cust_string, cust_value) {
 		var $exists = $("#phone_list_group input[value*='"+cust_value+"']")
 		if ($exists.length > 0) {
-			alert("이미 받는사람에 추가된 고객입니다.");
+			alert("이미 받는사람에 추가된 고객 또는 그룹입니다.");
 			return false;
 		}
 		var new_item = $('<li class="list-group-item">\
@@ -348,7 +339,18 @@ $this->managelayout->add_js(base_url('assets/js/select2.min.js'));
 			<span>'+cust_string+'</span>\
 			<input type="hidden" name="phone_list[]" value="'+cust_value+'">\
 		</li>');
+
+		var group_item = $('<li class="list-group-item">\
+			<button type="button" class="close" aria-label="Delete" onclick="this.parentNode.parentNode.removeChild(this.parentNode);"><span aria-hidden="true">&times;</span></button>\
+			<span> * 그룹 선택 : '+cust_string+'</span>\
+			<input type="hidden" name="phone_list[]" value="'+cust_value+'">\
+		</li>');
+
+		if(cust_value.includes("그룹 전송")){
+		$("#phone_list_group").append(group_item);
+		}else{
 		$("#phone_list_group").append(new_item);
+		}
 	}
 
 	var is_sms_submitted = false; //중복 submit방지

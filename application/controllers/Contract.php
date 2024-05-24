@@ -464,6 +464,7 @@ class Contract extends CB_Controller
 			if (!element('tombmig_date', $fld)) { $fld['tombmig_date'] = NULL; }
 			// if (element('cust_phone', $fld)) { $fld['cust_phone'] = get_phone(element('cust_phone', $fld)); }
 			if (element('cust_phone', $fld)) { $fld['cust_phone'] = str_replace('-', '', element('cust_phone', $fld)); }
+			// if (element('cust_group', $fld)) { $fld['cust_group'] = element('cust_group',$fld);}
 			if (element('ctr_prod_price', $fld)) { $fld['ctr_prod_price'] = get_price(element('ctr_prod_price', $fld),'만'); }
 			if (element('ctr_discount_amount', $fld)) { $fld['ctr_discount_amount'] = get_price(element('ctr_discount_amount', $fld),'만'); }
 			if (element('ctr_amount', $fld)) { $fld['ctr_amount'] = get_price(element('ctr_amount', $fld),'만'); }
