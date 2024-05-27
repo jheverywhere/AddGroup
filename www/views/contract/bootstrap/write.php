@@ -47,20 +47,12 @@ $submit_button = '
 				<tbody>
 					<tr>
 						<td>
-							<div class="col-md-3 col-xs-3 form-group">
+							<div class="col-md-6 col-xs-6 form-group">
 								<label for="cust_name">고객이름</label>
 								<!-- <input type="text" class="form-control" id="cust_name" name="cust_name" value="<?=element('cust_name', $data)?>" required placeholder="성명"> -->
 								<select class="form-control" name="cust_name" id="cust_name" data-idx="1" required>
 									<?php if (element('cust_name', $data)) { ?>
 									<option value="<?=element('cust_name', $data)?>" selected><?=element('cust_name', $data)?></option>
-									<?php } ?>
-								</select>
-							</div>
-							<div class="col-md-3 col-xs-3 form-group">
-								<label for="cust_group">그룹</label>
-								<select class="form-control" name="cust_group" id="cust_group" required>
-									<?php if (element('cust_group', $data)) { ?>
-									<option value="<?=element('cust_group', $data)?>" selected><?=element('cust_group', $data)?></option>
 									<?php } ?>
 								</select>
 							</div>
@@ -70,6 +62,14 @@ $submit_button = '
 								<!-- <div class="input-group">
 									<div class="input-group-addon"><span class="glyphicon glyphicon-earphone" aria-hidden="true"></span></div>
 								</div> -->
+							</div>
+							<div class="col-md-6 col-xs-6 form-group">
+								<label for="cust_group">그룹</label>
+								<select class="form-control" name="cust_group" id="cust_group">
+									<?php if (element('cust_group', $data)) { ?>
+									<option value="<?=element('cust_group', $data)?>" selected><?=element('cust_group', $data)?></option>
+									<?php } ?>
+								</select>
 							</div>
 						</td>
 					</tr>

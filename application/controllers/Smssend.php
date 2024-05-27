@@ -96,7 +96,7 @@ class Smssend extends CB_Controller
 		$view['view']['per_page'] = $per_page;
 
 		$config = array();
-		// $config['base_url'] = '/sms';
+		$config['base_url'] = '/sms';
 		$config['total_rows'] = element('total_rows', $sms_list);
 		$config['per_page'] = $per_page;
 		$config['reuse_query_string'] = TRUE;

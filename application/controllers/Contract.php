@@ -462,9 +462,9 @@ class Contract extends CB_Controller
 			unset($fld['accept_time']);
 			if (!element('ctr_date', $fld)) { $fld['ctr_date'] = NULL; }
 			if (!element('tombmig_date', $fld)) { $fld['tombmig_date'] = NULL; }
+			if (!element('cust_group', $fld)) { $fld['cust_group'] = NULL;}
 			// if (element('cust_phone', $fld)) { $fld['cust_phone'] = get_phone(element('cust_phone', $fld)); }
 			if (element('cust_phone', $fld)) { $fld['cust_phone'] = str_replace('-', '', element('cust_phone', $fld)); }
-			// if (element('cust_group', $fld)) { $fld['cust_group'] = element('cust_group',$fld);}
 			if (element('ctr_prod_price', $fld)) { $fld['ctr_prod_price'] = get_price(element('ctr_prod_price', $fld),'만'); }
 			if (element('ctr_discount_amount', $fld)) { $fld['ctr_discount_amount'] = get_price(element('ctr_discount_amount', $fld),'만'); }
 			if (element('ctr_amount', $fld)) { $fld['ctr_amount'] = get_price(element('ctr_amount', $fld),'만'); }
@@ -540,7 +540,7 @@ class Contract extends CB_Controller
 				foreach ($cust_list as $i => $row) {
 					$result['results'][] = array(
 						"id" => element('cust_name', $row),
-						"text" => element('cust_name', $row)."\n(".get_phone(element('cust_phone', $row)).")"
+						"text" => element('cust_name', $row)."\n(".get_phone(element('cust_phone', $row)).") by ".element('mem_username',$row)
 					);
 				}
 			}

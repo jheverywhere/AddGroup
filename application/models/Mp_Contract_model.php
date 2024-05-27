@@ -155,9 +155,9 @@ class Mp_Contract_model extends CB_Model
 
 	public function get_contract_by_cust_name($cust_name)
 	{
-		$this->db->select("ctr_no, cust_name, cust_phone, accept_date");
+		$this->db->select("ctr_no, cust_name, cust_phone, accept_date, mem_username");
 		$this->db->from($this->_table);
-		// $this->db->like("cust_name", $cust_name);
+		$this->db->join("cb_member", "cb_member.mem_id = cb_mp_contract.ctr_mem_id", "LEFT");
 		$this->db->where("cust_name", $cust_name);
 		$query_result = $this->db->get();
 		// debug_last_query();
